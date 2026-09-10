@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Procurement Security Demo</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 35%, #0f766e 100%);
+      color: #e2e8f0;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px 20px 60px;
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 24px;
+      align-items: stretch;
+      margin-bottom: 28px;
+    }
+    .panel {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 16px 35px rgba(15, 23, 42, 0.35);
+    }
+    h1, h2, h3 { margin-top: 0; }
+    .badge {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.2);
+      color: #a7f3d0;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(120px, 1fr));
+      gap: 14px;
+      margin-top: 22px;
+    }
+    .metric {
+      background: rgba(15, 118, 110, 0.15);
+      border: 1px solid rgba(45, 212, 191, 0.4);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .metric strong {
+      display: block;
+      font-size: 1.5rem;
+      margin-top: 8px;
+    }
+    .status-list {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0 0;
+    }
+    .status-list li {
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(96, 165, 250, 0.3);
+      color: #dbeafe;
+      font-size: 12px;
+    }
+    .ok {
+      color: #86efac;
+      font-weight: bold;
+    }
+    .warn {
+      color: #fbbf24;
+      font-weight: bold;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 22px;
+      margin-top: 28px;
+    }
+    .card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      border-radius: 16px;
+      padding: 18px;
+    }
+    code, pre {
+      font-family: Consolas, monospace;
+    }
+    pre {
+      background: #020817;
+      color: #cbd5e1;
+      padding: 14px;
+      border-radius: 10px;
+      overflow: auto;
+      font-size: 12px;
+    }
+    .button-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(135deg, #14b8a6, #3b82f6);
+      color: white;
+    }
+    button.secondary {
+      background: rgba(148, 163, 184, 0.18);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <div class="panel">
+        <div class="badge">Enterprise Value</div>
+        <h1>Multi-Agent Data Governance for B2B Operations</h1>
+        <p>Enterprise buyers do not just need encrypted data exchange. They need proof that vendor data cannot exfiltrate secrets, trigger unauthorized agent actions, or bypass compliance controls before work reaches the model or downstream systems.</p>
+
+        <div class="metrics">
+          <div class="metric">
+            <span>Protection</span>
+            <strong>DLP</strong>
+          </div>
+          <div class="metric">
+            <span>Proof</span>
+            <strong>Signed Receipts</strong>
+          </div>
+          <div class="metric">
+            <span>Control</span>
+            <strong>HITL</strong>
+          </div>
+        </div>
+
+        <div class="button-row">
+          <button id="approveBtn">Approve Workflow</button>
+          <button class="secondary" id="blockBtn">Block Unsafe Action</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Executive Control Layer</h3>
+        <ul class="status-list">
+          <li><span>Cryptographic verification</span> <span class="ok">Enabled</span></li>
+          <li><span>Vendor DLP + anonymization</span> <span class="ok">Active</span></li>
+          <li><span>Agent token TTL</span> <span class="ok">60s</span></li>
+          <li><span>Human approval threshold</span> <span class="warn">$100k</span></li>
+          <li><span>Audit ledger + receipts</span> <span class="ok">Immutable</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="grid" id="vendorGrid" aria-live="polite"></div>
+
+    <div class="panel" style="margin-top: 28px;">
+      <div class="badge">Azure & AWS Fulfillment Integration</div>
+      <h2>Secure cloud fulfillment for high-trust order orchestration</h2>
+      <p>Verified vendor requests are handed off to Azure and AWS fulfillment services where production workloads execute with isolated identities, secure storage, and policy-enforced routing.</p>
+      <div class="grid" id="fulfillmentGrid" aria-live="polite"></div>
+    </div>
+
+    <div class="panel" style="margin-top: 28px;">
+      <div class="badge">Why enterprises buy this</div>
+      <h2>Agentic data exfiltration is the real enterprise risk</h2>
+      <p>Encryption alone does not stop a bad vendor prompt, a compromised toolchain, or a multi-agent escalation path. The platform prevents leakage, denies unauthorized execution, and preserves firm evidence for every decision.</p>
+      <div class="grid">
+        <div class="card">
+          <h3>1. DLP + anonymization</h3>
+          <p>PII, API keys, and internal identifiers are tokenized before vendor data ever reaches the agent context or model memory.</p>
+        </div>
+        <div class="card">
+          <h3>2. Proof of execution</h3>
+          <p>Each vendor submission, rule decision, and agent action is data-hashed and signed to create cryptographic evidence for audits and disputes.</p>
+        </div>
+        <div class="card">
+          <h3>3. Guardrails + HITL</h3>
+          <p>Agents are restricted by vendor scope, token expiry, and escalating approval gates tied to real-world business risk.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top: 28px;">
+      <div class="badge">Dynamic blast-radius governance</div>
+      <h2>Risk-scored actions trigger the right control</h2>
+      <p>Every action is scored by transaction value, vendor trust, data sensitivity, and anomaly indicators. As the blast radius grows, the workflow automatically moves from autonomous execution to multi-agent consensus to human signoff.</p>
+      <div class="grid" id="blastRadiusGrid" aria-live="polite"></div>
+    </div>
+
+    <div class="panel" style="margin-top: 28px;">
+      <div class="badge">Prometheus telemetry</div>
+      <h2>Operational visibility across the vendor gateway</h2>
+      <div class="grid" id="prometheusCharts" aria-live="polite"></div>
+    </div>
+
+    <div class="grid" style="margin-top: 24px;">
+      <div class="card">
+        <h3>Valid Payload</h3>
+        <pre id="validPayload">{
+  "vendor_id": "VEND-00001",
+  "batch_number": "BATCH-42",
+  "item_sku": "SKU-100",
+  "quantity": 12,
+  "unit_price_usd": 45.5
+}</pre>
+      </div>
+
+      <div class="card">
+        <h3>Rejected Tampered Payload</h3>
+        <pre id="invalidPayload">{
+  "vendor_id": "VEND-00001",
+  "batch_number": "BATCH-42",
+  "item_sku": "SKU-100",
+  "quantity": 999999,
+  "unit_price_usd": -1
+}</pre>
+      </div>
+
+      <div class="card">
+        <h3>Agent Guardrail</h3>
+        <pre>{
+  "agent_id": "procurement-agent",
+  "allowed_tools": ["vendor_ingest"],
+  "scope": { "vendor_scope": "VEND-00001" },
+  "ttl_seconds": 60
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function loadVendorStrategies() {
+      const container = document.getElementById('vendorGrid');
+      try {
+        const response = await fetch('/api/vendor-strategy-demo');
+        const data = await response.json();
+        const vendors = data.vendors || [];
+
+        container.innerHTML = vendors.map((vendor) => `
+          <div class="card">
+            <div class="badge" style="background: rgba(59,130,246,0.18); color: #bfdbfe; border-color: rgba(96,165,250,0.4);">${vendor.vendor_name}</div>
+            <h3>${vendor.vendor_id}</h3>
+            <p><strong>Selected algorithm:</strong> ${vendor.algorithm}</p>
+            <p><strong>Negotiated preference:</strong> ${vendor.crypto_preference}</p>
+            <p><strong>Key length:</strong> ${vendor.key_length} bytes</p>
+            <pre>${JSON.stringify(vendor.encrypted_preview, null, 2)}</pre>
+          </div>
+        `).join('');
+      } catch (error) {
+        container.innerHTML = '<div class="card"><h3>Runtime Error</h3><pre>Could not load vendor strategy data.</pre></div>';
+      }
+    }
+
+    async function loadBlastRadius() {
+      const container = document.getElementById('blastRadiusGrid');
+      try {
+        const response = await fetch('/api/blast-radius-demo');
+        const data = await response.json();
+        const scenarios = data.scenarios || [];
+
+        container.innerHTML = scenarios.map((scenario) => `
+          <div class="card">
+            <div class="badge" style="background: rgba(16,185,129,0.18); color: #bbf7d0; border-color: rgba(16,185,129,0.4);">${scenario.label}</div>
+            <h3>${scenario.status}</h3>
+            <p><strong>Risk:</strong> ${scenario.risk_level.toUpperCase()} (${scenario.risk_score})</p>
+            <p><strong>Required signoff:</strong> ${scenario.required_signoff.length ? scenario.required_signoff.join(', ') : 'None'}</p>
+            <p><strong>Human approval:</strong> ${scenario.human_action_required ? 'Required' : 'Not required'}</p>
+            <pre>${scenario.alert || 'No additional alert required.'}</pre>
+          </div>
+        `).join('');
+      } catch (error) {
+        container.innerHTML = '<div class="card"><h3>Governance Error</h3><pre>Could not load blast-radius governance data.</pre></div>';
+      }
+    }
+
+    async function loadFulfillment() {
+      const container = document.getElementById('fulfillmentGrid');
+      try {
+        const response = await fetch('/api/fulfillment-demo');
+        const data = await response.json();
+        const providers = data.providers || [];
+
+        container.innerHTML = providers.map((provider) => `
+          <div class="card">
+            <div class="badge" style="background: rgba(34,197,94,0.18); color: #bbf7d0; border-color: rgba(34,197,94,0.4);">${provider.name}</div>
+            <h3>${provider.status}</h3>
+            <p><strong>Region:</strong> ${provider.region}</p>
+            <p><strong>Latency:</strong> ${provider.latency_ms} ms</p>
+            <p><strong>SLA:</strong> ${provider.sla}</p>
+            <p>${provider.summary}</p>
+            <div class="chip-row">
+              ${(provider.services || []).map((service) => `<span class="chip">${service}</span>`).join('')}
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        container.innerHTML = '<div class="card"><h3>Fulfillment Error</h3><pre>Could not load cloud fulfillment integration data.</pre></div>';
+      }
+    }
+
+    function makeSparkLine(values, color = '#34d399') {
+      const width = 260;
+      const height = 96;
+      const max = Math.max(...values, 1);
+      const min = Math.min(...values, 0);
+      const stepX = values.length > 1 ? width / (values.length - 1) : 1;
+      const points = values.map((value, index) => {
+        const x = index * stepX;
+        const y = height - ((value - min) / (max - min || 1)) * (height - 8) - 4;
+        return `${x},${y}`;
+      }).join(' ');
+      return `<svg viewBox="0 0 ${width} ${height}" width="100%" height="96" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="grad-${color.replace('#','')}" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="${color}" stop-opacity="0.45" />
+            <stop offset="100%" stop-color="${color}" stop-opacity="0.02" />
+          </linearGradient>
+        </defs>
+        <polyline fill="none" stroke="${color}" stroke-width="2.5" points="${points}" />
+      </svg>`;
+    }
+
+    async function loadPrometheusCharts() {
+      const container = document.getElementById('prometheusCharts');
+      const queryMap = [
+        { name: 'pipeline_throughput', label: 'Pipeline Throughput', unit: 'req/s', color: '#34d399' },
+        { name: 'security_audits', label: 'Security Audits', unit: 'failures/s', color: '#fbbf24' },
+        { name: 'agent_performance', label: 'Agent Performance', unit: 'ms', color: '#60a5fa' },
+        { name: 'system_health', label: 'System Health', unit: 'latency / cpu / mem', color: '#f472b6' },
+      ];
+
+      try {
+        const responses = await Promise.all(queryMap.map(async (q) => {
+          const response = await fetch(`/api/prometheus/query_range?query=${encodeURIComponent(q.name)}`);
+          const data = await response.json();
+          const series = data.data && data.data.result ? data.data.result : [];
+          const values = series.length ? series[0].values.map((entry) => Number(entry[1])) : [];
+          return { ...q, values };
+        }));
+
+        container.innerHTML = responses.map((metric) => {
+          const currentValue = metric.values.length ? metric.values[metric.values.length - 1].toFixed(1) : '0.0';
+          const headline = metric.name === 'system_health'
+            ? 'Latency / CPU / Memory'
+            : `${currentValue} ${metric.unit}`;
+          const chart = metric.name === 'system_health'
+            ? ['gateway_latency', 'http_5xx_rate', 'cpu_usage', 'memory_usage']
+                .map((name) => {
+                  const item = responses.find((entry) => entry.name === name) || { values: [], color: '#f472b6' };
+                  return `<div class="mini-chart"><div class="mini-label">${name}</div>${makeSparkLine(item.values, item.color)}</div>`;
+                })
+                .join('')
+            : makeSparkLine(metric.values, metric.color);
+
+          return `
+            <div class="card">
+              <div class="badge" style="background: rgba(59,130,246,0.18); color: #bfdbfe; border-color: rgba(96,165,250,0.4);">${metric.label}</div>
+              <h3>${headline}</h3>
+              ${chart}
+            </div>
+          `;
+        }).join('');
+      } catch (error) {
+        container.innerHTML = '<div class="card"><h3>Telemetry Error</h3><pre>Prometheus data could not be loaded.</pre></div>';
+      }
+    }
+
+    document.getElementById('approveBtn').addEventListener('click', function() {
+      alert('Approved: this workflow passed cryptographic verification, DLP screening, schema validation, and agent authorization controls.');
+    });
+
+    document.getElementById('blockBtn').addEventListener('click', function() {
+      alert('Blocked: unsafe vendor state detected; the action was paused before execution because it violated the enterprise governance policies.');
+    });
+
+    loadVendorStrategies();
+    loadBlastRadius();
+    loadFulfillment();
+    loadPrometheusCharts();
+  </script>
+</body>
+</html>

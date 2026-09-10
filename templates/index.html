@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CRM Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #eef6ff 0%, #f8fafc 50%, #fdf2f8 100%);
+      color: #1f2937;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      background: linear-gradient(90deg, #2563eb, #7c3aed);
+      color: white;
+      padding: 18px 22px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2);
+    }
+    .header h1 { margin: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+      padding: 18px;
+      border-left: 6px solid #2563eb;
+    }
+    .card h2 { margin-top: 0; }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    input, textarea, select, button {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #d9e2ec;
+      font-size: 14px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .list-box {
+      background: #111827;
+      color: #e5e7eb;
+      padding: 14px;
+      border-radius: 10px;
+      overflow: auto;
+      font-size: 12px;
+      margin-top: 8px;
+      min-height: 120px;
+    }
+    .section-title {
+      margin-top: 30px;
+      margin-bottom: 10px;
+      font-size: 1.15rem;
+      font-weight: bold;
+      color: #1f2937;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>CRM Dashboard</h1>
+      <button id="refreshBtn">Refresh Data</button>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Register User</h2>
+        <form id="userForm">
+          <input name="username" placeholder="Username" required>
+          <input name="email" type="email" placeholder="Email" required>
+          <input name="password" type="password" placeholder="Password" required>
+          <button type="submit">Create User</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Login</h2>
+        <form id="loginForm">
+          <input name="username" placeholder="Username" required>
+          <input name="password" type="password" placeholder="Password" required>
+          <button type="submit">Login</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Add Contact</h2>
+        <form id="contactForm">
+          <input name="name" placeholder="Name" required>
+          <input name="email" type="email" placeholder="Email" required>
+          <input name="phone" placeholder="Phone">
+          <button type="submit">Add Contact</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Add Lead</h2>
+        <form id="leadForm">
+          <input name="name" placeholder="Name" required>
+          <input name="email" type="email" placeholder="Email" required>
+          <input name="phone" placeholder="Phone">
+          <button type="submit">Add Lead</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Add Opportunity</h2>
+        <form id="opportunityForm">
+          <input name="name" placeholder="Opportunity Name" required>
+          <textarea name="description" placeholder="Description"></textarea>
+          <input name="deadline" type="date" required>
+          <button type="submit">Add Opportunity</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Add Pipeline Stage</h2>
+        <form id="pipelineForm">
+          <input name="stage" placeholder="Stage" required>
+          <input name="deadline" type="date" required>
+          <button type="submit">Add Stage</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="section-title">Users</div>
+    <pre id="usersOutput" class="list-box">[]</pre>
+
+    <div class="section-title">Contacts</div>
+    <pre id="contactsOutput" class="list-box">[]</pre>
+
+    <div class="section-title">Leads</div>
+    <pre id="leadsOutput" class="list-box">[]</pre>
+
+    <div class="section-title">Opportunities</div>
+    <pre id="opportunitiesOutput" class="list-box">[]</pre>
+
+    <div class="section-title">Sales Pipeline</div>
+    <pre id="pipelineOutput" class="list-box">[]</pre>
+  </div>
+
+  <script>
+    async function fetchJson(url, options = {}) {
+      const res = await fetch(url, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Request failed');
+      }
+      return data;
+    }
+
+    async function loadAll() {
+      try {
+        const users = await fetchJson('/api/users');
+        const contacts = await fetchJson('/api/contacts');
+        const leads = await fetchJson('/api/leads');
+        const opportunities = await fetchJson('/api/opportunities');
+        const pipeline = await fetchJson('/api/sales-pipeline');
+
+        document.getElementById('usersOutput').textContent = JSON.stringify(users, null, 2);
+        document.getElementById('contactsOutput').textContent = JSON.stringify(contacts, null, 2);
+        document.getElementById('leadsOutput').textContent = JSON.stringify(leads, null, 2);
+        document.getElementById('opportunitiesOutput').textContent = JSON.stringify(opportunities, null, 2);
+        document.getElementById('pipelineOutput').textContent = JSON.stringify(pipeline, null, 2);
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', loadAll);
+
+    document.getElementById('userForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = Object.fromEntries(new FormData(e.target).entries());
+      await fetchJson('/api/users', { method: 'POST', body: JSON.stringify(payload) });
+      e.target.reset();
+      loadAll();
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = Object.fromEntries(new FormData(e.target).entries());
+      const result = await fetchJson('/api/users/login', { method: 'POST', body: JSON.stringify(payload) });
+      alert(result.message || 'Login successful');
+      e.target.reset();
+    });
+
+    document.getElementById('contactForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = Object.fromEntries(new FormData(e.target).entries());
+      await fetchJson('/api/contacts', { method: 'POST', body: JSON.stringify(payload) });
+      e.target.reset();
+      loadAll();
+    });
+
+    document.getElementById('leadForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = Object.fromEntries(new FormData(e.target).entries());
+      await fetchJson('/api/leads', { method: 'POST', body: JSON.stringify(payload) });
+      e.target.reset();
+      loadAll();
+    });
+
+    document.getElementById('opportunityForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = Object.fromEntries(new FormData(e.target).entries());
+      await fetchJson('/api/opportunities', { method: 'POST', body: JSON.stringify(payload) });
+      e.target.reset();
+      loadAll();
+    });
+
+    document.getElementById('pipelineForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = Object.fromEntries(new FormData(e.target).entries());
+      await fetchJson('/api/sales-pipeline', { method: 'POST', body: JSON.stringify(payload) });
+      e.target.reset();
+      loadAll();
+    });
+
+    loadAll();
+  </script>
+</body>
+</html>
