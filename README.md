@@ -1,4 +1,4 @@
-# Procurement Security Demo
+
 
 A Flask-based procurement and vendor workflow demo that combines a CRM-style interface with enterprise security controls, billing-aware marketplace fulfillment, and lifecycle webhook simulation. It is designed to showcase secure vendor ingress, DLP, risk governance, encrypted transport selection, Azure/AWS fulfillment, and pay-as-you-go usage metering in a single presentation-ready application.
 
