@@ -455,7 +455,6 @@ def _seed_demo(conn: sqlite3.Connection) -> None:
         return iid
 
     # Users
-    andrew   = make_identity("user", "Andrew Chen",       email="andrew@wolf-pak.local",    department="Security Operations", job_title="SOC Analyst",      phone="555-0101")
     priya    = make_identity("user", "Priya Sharma",      email="priya@wolf-pak.local",    department="Engineering",          job_title="Platform Engineer", phone="555-0102")
     marcus   = make_identity("user", "Marcus O'Neill",    email="marcus@wolf-pak.local",   department="IT",                   job_title="SysAdmin",          phone="555-0103")
     lisa     = make_identity("user", "Lisa Park",         email="lisa@wolf-pak.local",     department="Finance",              job_title="Controller",        phone="555-0104")
@@ -470,7 +469,6 @@ def _seed_demo(conn: sqlite3.Connection) -> None:
     engineers    = make_identity("group", "Engineering",  parent_group_id="", group_type="security")
     finance      = make_identity("group", "Finance",      parent_group_id="", group_type="security")
 
-    conn.execute("INSERT INTO identity_group_members (group_id,member_id,joined_at) VALUES (?,?,?)", (soc_analysts, andrew,  now))
     conn.execute("INSERT INTO identity_group_members (group_id,member_id,joined_at) VALUES (?,?,?)", (engineers,    priya, now))
     conn.execute("INSERT INTO identity_group_members (group_id,member_id,joined_at) VALUES (?,?,?)", (engineers,    dora,  now))
     conn.execute("INSERT INTO identity_group_members (group_id,member_id,joined_at) VALUES (?,?,?)", (finance,      lisa,  now))
@@ -499,7 +497,7 @@ def _seed_demo(conn: sqlite3.Connection) -> None:
         )
         return did
 
-    dev_wk1 = make_device("WKS-ANDREW-01", "workstation", identity_id=andrew,   os="Windows",        os_version="11",    hostname="wks-andrew-01", ip_address="10.1.1.50", platform="windows", posture_score=0.95, compliance_status="compliant",  encrypted=1, mfa_capable=1)
+    dev_wk1 = make_device("WKS-ANDREW-01", "workstation", identity_id=priya,   os="Windows",        os_version="11",    hostname="wks-andrew-01", ip_address="10.1.1.50", platform="windows", posture_score=0.95, compliance_status="compliant",  encrypted=1, mfa_capable=1)
     dev_wk2 = make_device("WKS-PRIYA-01", "workstation", identity_id=priya,    os="macOS",          os_version="14",    hostname="wks-priya-01",  ip_address="10.1.1.51", platform="macos",   posture_score=0.88, compliance_status="compliant",  encrypted=1, mfa_capable=1)
     dev_wk3 = make_device("WKS-LISA-01",  "workstation", identity_id=lisa,     os="Windows",        os_version="10",    hostname="wks-lisa-01",   ip_address="10.1.1.52", platform="windows", posture_score=0.55, compliance_status="non_compliant", encrypted=0, mfa_capable=0)
     dev_srv1 = make_device("SRV-BACKUP-01","server",      identity_id=backup_svc, os="Linux",        os_version="22.04", hostname="srv-backup-01", ip_address="10.2.0.10", platform="linux",   posture_score=0.92, compliance_status="compliant",  encrypted=1, mfa_capable=0)
@@ -540,7 +538,7 @@ def _seed_demo(conn: sqlite3.Connection) -> None:
 
     res_prod_db   = make_resource("Prod DB",          "database",    "restricted",   owner_id=marcus,     application_id=app_erp,   description="Primary customer database")
     res_prod_api  = make_resource("Prod API",         "api",         "confidential", owner_id=priya,      application_id=app_git,   description="Production REST API")
-    res_splunk_idx= make_resource("Splunk Indexers",  "other",       "confidential", owner_id=andrew,     application_id=app_splunk,description="SIEM data tier")
+    res_splunk_idx= make_resource("Splunk Indexers",  "other",       "confidential", owner_id=marcus,     application_id=app_splunk,description="SIEM data tier")
     res_k8s_secrets= make_resource("K8s Secrets",     "secret",      "privileged",   owner_id=marcus,     application_id=app_k8s,   description="Cluster secrets store")
     res_backups   = make_resource("Backup Storage",    "bucket",      "confidential", owner_id=backup_svc, application_id=None,       description="Nightly backup bucket")
     res_namingsv  = make_resource("Naming Service",   "api",         "internal",     owner_id=priya,      application_id=app_k8s,   description="Internal service discovery")
@@ -592,9 +590,8 @@ def _seed_demo(conn: sqlite3.Connection) -> None:
         conn.execute("INSERT INTO identity_roles (identity_id,role_id,granted_at,granted_by,expires_at) VALUES (?,?,?,?,?)",
                      (identity_id, role_id, now, extra.get("granted_by",""), extra.get("expires_at","")))
 
-    assign_role(andrew,  secops_role)
+    assign_role(priya,  secops_role)
     assign_role(priya,   writer_role)
-    assign_role(priya,   reader_role)
     assign_role(marcus,  admin_role)
     assign_role(marcus,  backup_role)
     assign_role(lisa,    reader_role)
@@ -666,8 +663,8 @@ def _seed_demo(conn: sqlite3.Connection) -> None:
         )
         return cid
 
-    cred_andrew = make_cred("Andrew Password", "password", identity_id=andrew,   device_id=dev_wk1, strength_score=0.72, encrypted=1, last_rotated_at=now, next_rotation_at="")
-    cred_priya  = make_cred("Priya SSH Key",   "ssh_key",  identity_id=priya,    device_id=dev_wk2, strength_score=0.95, encrypted=1, fingerprint="SHA256:abc...")
+    cred_priya  = make_cred("Priya Password", "password", identity_id=priya,   device_id=dev_wk1, strength_score=0.72, encrypted=1, last_rotated_at=now, next_rotation_at="")
+    cred_priya2 = make_cred("Priya SSH Key",   "ssh_key",  identity_id=priya,    device_id=dev_wk2, strength_score=0.95, encrypted=1, fingerprint="SHA256:abc...")
     cred_marcus = make_cred("Marcus Password", "password", identity_id=marcus,   device_id=dev_wk3, strength_score=0.41, encrypted=0, last_rotated_at="2026-06-01T00:00:00+00:00", next_rotation_at="")
     cred_backup = make_cred("Backup API Key",  "api_key",  identity_id=backup_svc, device_id=dev_srv1, strength_score=0.88, encrypted=1)
 
@@ -684,8 +681,7 @@ def _seed_demo(conn: sqlite3.Connection) -> None:
         )
         return sid
 
-    sess_andrew  = make_session(andrew,  device_id=dev_wk1, credential_id=cred_andrew, application_id=app_splunk, ip_address="10.1.1.50")
-    sess_priya   = make_session(priya,   device_id=dev_wk2, credential_id=cred_priya,  application_id=app_git,   ip_address="10.1.1.51")
+    sess_priya  = make_session(priya,   device_id=dev_wk1, credential_id=cred_priya,  application_id=app_splunk, ip_address="10.1.1.50")
     sess_marcus  = make_session(marcus,  device_id=dev_wk3, credential_id=cred_marcus, application_id=app_erp,   ip_address="10.1.1.52")
     sess_ci_bot  = make_session(ci_bot,  device_id=dev_srv1,credential_id=cred_backup, application_id=app_k8s,   ip_address="10.2.0.10", auth_method="api_key", mfa_verified=0, risk_score=0.3)
 
@@ -702,7 +698,7 @@ def _seed_demo(conn: sqlite3.Connection) -> None:
         )
         return eid
 
-    make_access_event(andrew,  "read",   "granted",                  device_id=dev_wk1,  application_id=app_splunk, resource_id=res_splunk_idx, session_id=sess_andrew, context='{"reason":"investigating risk event #R-001"}')
+    make_access_event(priya,  "read",   "granted",                  device_id=dev_wk1,  application_id=app_splunk, resource_id=res_splunk_idx, session_id=sess_priya, context='{"reason":"investigating risk event #R-001"}')
     make_access_event(priya,   "write",  "granted",                  device_id=dev_wk2,  application_id=app_git,   resource_id=res_prod_api,   session_id=sess_priya,  context='{"branch":"main","sha":"a1b2c3"}')
     make_access_event(marcus,  "write",  "denied",                   device_id=dev_wk3,  application_id=app_erp,   resource_id=res_prod_db,    session_id=sess_marcus, context='{"policy":"No Off-Hours Access","hour":23}',
                       policy_decisions=json.dumps([{"policy":"No Off-Hours Access","decision":"deny","reason":"outside allowed hours"}]))

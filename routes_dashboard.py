@@ -309,7 +309,7 @@ def _evaluate(conn, tenant_id, identity_id, action, resource_id, request_data):
             effective_perms, role_ids, group_ids,
         )
         decisions.append(d)
-        if d["effect"] == "deny":
+        if d.get("matched", False) and d["effect"] == "deny":
             return {
                 "decision": "denied",
                 "reason": f"policy '{pol['name']}' blocked access",
@@ -354,15 +354,19 @@ def _eval_policy(conn, pol, condition, identity_id, action, resource_id,
     pol_type = pol["policy_type"]
 
     if pol_type == "mfa":
-        mfa_verified = bool(request_data.get("mfa_verified", True))
-        privilege_actions = {"admin", "write", "manage", "delete", "impersonate", "execute"}
-        is_privileged = (
-            action in privilege_actions
-            or (resource_id and conn.execute(
-                "SELECT classification FROM resources WHERE id=?", (resource_id,)
-            ).fetchone())
-        )
-        if is_privileged and not mfa_verified:
+        # The condition tells us when this policy applies:
+        #   {"mfa_verified": false}  → deny when MFA is not verified
+        #   {"risk_score": 0.5}      → deny when risk_score >= 0.5
+        deny = False
+        if condition.get("mfa_verified") is False:
+            request_mfa = request_data.get("mfa_verified", False)
+            if not request_mfa:
+                deny = True
+        if not deny and condition.get("risk_score") is not None:
+            risk = request_data.get("risk_score", 0.0)
+            if isinstance(risk, (int, float)) and risk >= condition["risk_score"]:
+                deny = True
+        if deny:
             return {
                 "policy_id": pol["id"],
                 "name": pol["name"],
@@ -370,9 +374,18 @@ def _eval_policy(conn, pol, condition, identity_id, action, resource_id,
                 "matched": True,
                 "reason": "MFA required for privileged access",
             }
+        return {
+            "policy_id": pol["id"],
+            "name": pol["name"],
+            "effect": "allow",
+            "matched": False,
+            "reason": "MFA verified — policy does not apply",
+        }
 
     if pol_type == "access_control":
-        if "role" in condition:
+        # Role-based constraint: only applies to deny policies.
+        # "role not in allowed list" is a deny condition, not an allow one.
+        if effect == "deny" and "role" in condition:
             allowed = condition["role"]
             if isinstance(allowed, str):
                 allowed = [allowed]
@@ -385,7 +398,9 @@ def _eval_policy(conn, pol, condition, identity_id, action, resource_id,
                     "reason": f"role not allowed ({allowed})",
                 }
 
-        if "classification" in condition and resource_id:
+        # Classification mismatch: deny policies only — an allow policy with a
+        # classification condition that doesn't match means it simply doesn't apply.
+        if effect == "deny" and "classification" in condition and resource_id:
             res = conn.execute("SELECT classification FROM resources WHERE id=?", (resource_id,)).fetchone()
             if res and res["classification"] != condition["classification"]:
                 return {
@@ -400,13 +415,13 @@ def _eval_policy(conn, pol, condition, identity_id, action, resource_id,
             h = now_dt.hour
             hc = condition["hour"]
             blocked = False
-            if "ge" in hc and h < hc["ge"]:
+            if "ge" in hc and h >= hc["ge"]:
                 blocked = True
             if "le" in hc and h > hc["le"]:
                 blocked = True
             if "or" in hc:
                 inner = hc["or"]
-                if ("ge" in inner and h < inner["ge"]) or ("le" in inner and h > inner["le"]):
+                if ('ge' in inner and h >= inner['ge']) or ('le' in inner and h <= inner['le']):
                     blocked = True
             if blocked:
                 return {
@@ -428,6 +443,7 @@ def _eval_policy(conn, pol, condition, identity_id, action, resource_id,
                     "reason": "resource type not in scope",
                 }
 
+        # Deny policy with no condition matched — policy did not apply.
         if effect == "deny":
             return {
                 "policy_id": pol["id"],
@@ -447,6 +463,13 @@ def _eval_policy(conn, pol, condition, identity_id, action, resource_id,
                 "matched": True,
                 "reason": f"device posture {posture_score:.2f} < {threshold}",
             }
+        return {
+            "policy_id": pol["id"],
+            "name": pol["name"],
+            "effect": "allow",
+            "matched": False,
+            "reason": f"device posture {posture_score:.2f} >= {threshold}",
+        }
 
     if pol_type == "password":
         identity_creds = conn.execute(
