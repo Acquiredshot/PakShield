@@ -13,4 +13,5 @@ venv/
 .DS_Store
 .vscode/
 crm.db
+pakshield.db
 *.sqlite3
