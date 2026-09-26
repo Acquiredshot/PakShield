@@ -320,7 +320,49 @@ def create_access_event(tenant_id):
     conn.commit()
     conn.close()
     row = conn.execute("SELECT * FROM access_events WHERE id=?", (eid,)).fetchone()
-    return jsonify(_json(row)), 201
+    result = jsonify(_json(row)), 201
+
+    # --- Wire to Wolf-Pak Security Core ---
+    try:
+        from pakshield_integration import event_publisher, graph_feeder, mask_redactor
+
+        d = dict(row)
+        for k, v in list(d.items()):
+            if isinstance(v, str):
+                try:
+                    parsed = __import__("json").loads(v)
+                except (ValueError, TypeError):
+                    continue
+                if isinstance(parsed, (dict, list)):
+                    d[k] = parsed
+
+        dev_id = d.get("device_id") or ""
+        pub = event_publisher()
+        pub.publish_access_event(
+            event_id=d.get("id", eid),
+            identity_id=d.get("identity_id", ""),
+            device_id=dev_id,
+            application_id=d.get("application_id", ""),
+            resource_id=d.get("resource_id", ""),
+            permission_id=d.get("permission_id", ""),
+            decision=d.get("outcome", "granted"),
+            reason=d.get("context", {}).get("reason", ""),
+            ip_address=d.get("source_ip", ""),
+        )
+
+        fed = graph_feeder()
+        if identity_id:
+            fed.link_identity_device(identity_id=identity_id, device_id=dev_id or "unknown")
+
+        red = mask_redactor()
+        _ = red.redact(d)
+    except Exception as exc:
+        import logging
+        logging.getLogger("pakshield.integration").warning(
+            "Wolf-Pak Security Core integration skipped for access event %s: %s", eid, exc
+        )
+
+    return result
 
 
 @app.route("/api/tenants/<tenant_id>/access-events/<event_id>", methods=["GET"])

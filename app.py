@@ -15,6 +15,13 @@ import routes_resources   # noqa: F401 — resources, permissions, policies
 import routes_auth        # noqa: F401 — credentials, sessions, access events
 import routes_security    # noqa: F401 — risk events, findings, violations, remediation
 import routes_dashboard  # noqa: F401 — dashboard, risk surface, effective access, PDP evaluate
+import routes_enrichment # noqa: F401 — NG enrichment endpoint
+
+# Auto-register: routes_enrichment registers itself on import so that
+# app.py does not need to. The blueprint is registered by the module's
+# own auto-register block when routes_enrichment is imported above.
+# from routes_enrichment import enrichment as _enrichment_bp
+# _app.register_blueprint(_enrichment_bp, name="enrichment")
 
 
 @app.route("/")

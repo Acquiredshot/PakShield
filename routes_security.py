@@ -112,7 +112,44 @@ def create_risk_event(tenant_id):
     conn.commit()
     conn.close()
     row = conn.execute("SELECT * FROM risk_events WHERE id=?", (rid,)).fetchone()
-    return jsonify(_json(row)), 201
+    result = jsonify(_json(row)), 201
+
+    # --- Wire to Wolf-Pak Security Core ---
+    try:
+        from pakshield_integration import event_publisher, graph_feeder
+
+        d = dict(row)
+        for k, v in list(d.items()):
+            if isinstance(v, str):
+                try:
+                    parsed = __import__("json").loads(v)
+                except (ValueError, TypeError):
+                    continue
+                if isinstance(parsed, (dict, list)):
+                    d[k] = parsed
+
+        dev_id = d.get("device_id") or ""
+        pub = event_publisher()
+        pub.publish_risk_event(
+            event_id=d.get("id", rid),
+            identity_id=d.get("identity_id", ""),
+            device_id=dev_id,
+            risk_type=d.get("source", "manual"),
+            risk_score=float(d.get("risk_score", 0.0)),
+            description=d.get("description", d.get("title", "")),
+            details={"severity": d.get("severity", "low"), "source": d.get("source", "manual")},
+        )
+
+        fed = graph_feeder()
+        if d.get("identity_id"):
+            fed.link_identity_device(identity_id=d["identity_id"], device_id=dev_id or "unknown")
+    except Exception as exc:
+        import logging
+        logging.getLogger("pakshield.integration").warning(
+            "Wolf-Pak Security Core integration skipped for risk event %s: %s", rid, exc
+        )
+
+    return result
 
 
 @app.route("/api/tenants/<tenant_id>/risk-events/<risk_event_id>", methods=["PATCH"])
@@ -213,7 +250,48 @@ def create_finding(tenant_id):
     conn.commit()
     conn.close()
     row = conn.execute("SELECT * FROM findings WHERE id=?", (fid,)).fetchone()
-    return jsonify(_json(row)), 201
+    result = jsonify(_json(row)), 201
+
+    # --- Wire to Wolf-Pak Security Core ---
+    try:
+        from pakshield_integration import event_publisher, graph_feeder, mask_redactor
+
+        d = dict(row)
+        for k, v in list(d.items()):
+            if isinstance(v, str):
+                try:
+                    parsed = __import__("json").loads(v)
+                except (ValueError, TypeError):
+                    continue
+                if isinstance(parsed, (dict, list)):
+                    d[k] = parsed
+
+        dev_id = d.get("device_id") or ""
+        pub = event_publisher()
+        pub.publish_finding(
+            event_id=d.get("id", fid),
+            identity_id=d.get("identity_id", ""),
+            device_id=dev_id,
+            category=d.get("category", "other"),
+            severity=d.get("severity", "low"),
+            title=d.get("title", ""),
+            description=d.get("description", ""),
+            recommendation=d.get("recommendation", ""),
+        )
+
+        fed = graph_feeder()
+        if d.get("identity_id"):
+            fed.link_identity_device(identity_id=d["identity_id"], device_id=dev_id or "unknown")
+
+        red = mask_redactor()
+        _ = red.redact(d)
+    except Exception as exc:
+        import logging
+        logging.getLogger("pakshield.integration").warning(
+            "Wolf-Pak Security Core integration skipped for finding %s: %s", fid, exc
+        )
+
+    return result
 
 
 @app.route("/api/tenants/<tenant_id>/findings/<finding_id>", methods=["GET"])
@@ -331,7 +409,45 @@ def create_violation(tenant_id):
     conn.commit()
     conn.close()
     row = conn.execute("SELECT * FROM violations WHERE id=?", (vid,)).fetchone()
-    return jsonify(_json(row)), 201
+    result = jsonify(_json(row)), 201
+
+    # --- Wire to Wolf-Pak Security Core ---
+    try:
+        from pakshield_integration import event_publisher, graph_feeder
+
+        d = dict(row)
+        for k, v in list(d.items()):
+            if isinstance(v, str):
+                try:
+                    parsed = __import__("json").loads(v)
+                except (ValueError, TypeError):
+                    continue
+                if isinstance(parsed, (dict, list)):
+                    d[k] = parsed
+
+        dev_id = d.get("device_id") or ""
+        pub = event_publisher()
+        pub.publish_violation(
+            event_id=d.get("id", vid),
+            identity_id=d.get("identity_id", ""),
+            device_id=dev_id,
+            policy_id=d.get("policy_id", ""),
+            resource_id=d.get("resource_id", ""),
+            action=d.get("action", ""),
+            severity=d.get("severity", "low"),
+            description=d.get("description", ""),
+        )
+
+        fed = graph_feeder()
+        if d.get("identity_id"):
+            fed.link_identity_device(identity_id=d["identity_id"], device_id=dev_id or "unknown")
+    except Exception as exc:
+        import logging
+        logging.getLogger("pakshield.integration").warning(
+            "Wolf-Pak Security Core integration skipped for violation %s: %s", vid, exc
+        )
+
+    return result
 
 
 @app.route("/api/tenants/<tenant_id>/violations/<violation_id>", methods=["GET"])
@@ -434,7 +550,45 @@ def create_remediation(tenant_id):
     conn.commit()
     conn.close()
     row = conn.execute("SELECT * FROM remediation WHERE id=?", (rid,)).fetchone()
-    return jsonify(_json(row)), 201
+    result = jsonify(_json(row)), 201
+
+    # --- Wire to Wolf-Pak Security Core ---
+    try:
+        from pakshield_integration import event_publisher, graph_feeder
+
+        d = dict(row)
+        for k, v in list(d.items()):
+            if isinstance(v, str):
+                try:
+                    parsed = __import__("json").loads(v)
+                except (ValueError, TypeError):
+                    continue
+                if isinstance(parsed, (dict, list)):
+                    d[k] = parsed
+
+        dev_id = d.get("device_id") or ""
+        pub = event_publisher()
+        pub.publish_remediation(
+            event_id=d.get("id", rid),
+            identity_id=d.get("identity_id", ""),
+            device_id=dev_id,
+            finding_id=d.get("finding_id", ""),
+            remediation_type=d.get("action_type", "other"),
+            action_taken=d.get("action_details", ""),
+            status=d.get("status", "pending"),
+            description=f"Remediation {d.get('action_type', 'other')}: {d.get('action_details', '')}",
+        )
+
+        fed = graph_feeder()
+        if d.get("identity_id"):
+            fed.link_identity_device(identity_id=d["identity_id"], device_id=dev_id or "unknown")
+    except Exception as exc:
+        import logging
+        logging.getLogger("pakshield.integration").warning(
+            "Wolf-Pak Security Core integration skipped for remediation %s: %s", rid, exc
+        )
+
+    return result
 
 
 @app.route("/api/tenants/<tenant_id>/remediations/<remediation_id>", methods=["GET"])
