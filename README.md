@@ -1,317 +1,180 @@
 
 
-A Flask-based procurement and vendor workflow demo that combines a CRM-style interface with enterprise security controls, billing-aware marketplace fulfillment, and lifecycle webhook simulation. It is designed to showcase secure vendor ingress, DLP, risk governance, encrypted transport selection, Azure/AWS fulfillment, and pay-as-you-go usage metering in a single presentation-ready application.
+# PakShield — Identity, Access & Privilege Intelligence Engine
+
+**Copyright (c) 2026 Wolf-Pak Innovations LLC. All rights reserved.**
+
+PakShield is part of the Wolf-Pak security platform alongside Network Guardian and Mask.
+
+**Wolf-Pak's Identity, Access & Privilege Intelligence Engine.**
+
+PakShield answers four questions for every access decision in the Wolf-Pak security platform:
+
+- **Who is responsible?** — the identity (user, service account, group, or role) requesting access
+- **What can they access?** — the effective permissions and resources available to that identity
+- **What should they be able to access?** — the policy-driven ideal state compared against actual access
+- **How risky is that identity/access relationship?** — the risk score, posture, and anomalies attached to the identity and its devices
+
+Network Guardian answers *"What is happening on the network?"* PakShield answers *"Who is responsible, what can they access, and how risky is that?"* Together they produce contextual security intelligence.
 
 ## What this application does
 
-This project demonstrates a secure enterprise procurement flow across several layers:
+PakShield is a tenant-scoped identity and access management (IAM) engine with a 13-entity data model, a full REST API, and a policy decision point (PDP) that evaluates access requests against permissions, roles, groups, and policies.
 
-- Vendor payload verification using Ed25519 signatures
-- Strict schema validation with Pydantic
-- DLP-style anonymization for sensitive fields
-- Agent authorization tokens and scoped execution permissions
-- Human approval gates for high-risk transactions
-- Audit ledger and signed execution receipts
-- Risk scoring and blast-radius governance
-- Azure and AWS marketplace onboarding simulation
-- Lifecycle webhook handling for subscription changes and cancellations
-- Usage metering patterns for marketplace billing
-- Prometheus-style telemetry dashboards and charting
-- SQLite-backed CRM and sales workflow data
-- Constrained AI agents for vendor parsing, anomaly detection, and audit summarization
-- Full regression test coverage validating both the security layer and the agent layer
+### Core capabilities
 
-## Main application files
+- **Tenant isolation** — every entity lives under a tenant; multi-tenant ready
+- **Identity model** — Users, Service Accounts, Groups, and Roles with group membership and role assignment
+- **Device management** — devices with posture scores, compliance status, encryption, MFA capability, and IP/hostname tracking; devices are linked to owning identities
+- **Application catalog** — registered applications with type, vendor, version, URL, auth protocol, and risk rating
+- **Resource hierarchy** — hierarchical resources (folders, documents, fields) with classification, ownership, and data retention policies
+- **Permission system** — permissions grant actions (read, write, delete, administer, share, export, audit) on resource types; assignable to roles and identities directly
+- **Policy engine** — conditional policies (MFA required, device posture thresholds, off-hours restrictions, role restrictions) with allow/deny/audit effects; policies can block or flag access decisions
+- **Credential lifecycle** — password and key credentials with strength scoring, rotation tracking, expiration, and status
+- **Session tracking** — sessions with start time, last activity, expiration, IP, user agent, MFA verification state, and risk score
+- **Access event logging** — every access request recorded with identity, device, application, resource, permission, outcome, source IP, and policy decisions
+- **Risk event detection** — risk events scored 0-100 with severity, source, indicators, and status
+- **Finding management** — security findings with category, severity, confidence, recommendation, and lifecycle
+- **Violation tracking** — policy violations with type, severity, evidence, and lifecycle
+- **Remediation workflow** — remediations tied to findings/violations/risk events, with action types (revoke_access, disable_account, rotate_credential, quarantine_device, enforce_mfa, apply_policy, escalate, accept_risk, close)
+- **Policy Decision Point (PDP)** — evaluate endpoint accepts identity + action + resource + device + context; returns grant/deny, effective permissions, policy violations, and reason
+- **Dashboard** — aggregate counts, top findings, top violations, open risk events, stale credentials, non-compliant devices
+- **Risk surface** — open risk events, high-risk identities, stale credentials, non-compliant devices, total risk score
+- **Effective access** — what a given identity can access across resources, permissions, and applications
+- **Enrichment endpoint** — Network Guardian calls this to turn a device IP or identity ID into full identity/access/risk context for correlation with network telemetry
 
-- `app.py` — Flask web app and API routes
-- `VendorPayloadVerification.py` — security, governance, crypto, lifecycle, fulfillment, billing, and agent logic
-- `templates/demo.html` — live demo UI
-- `templates/index.html` — landing page
-- `requirements.txt` — Python dependencies
-- `crm.db` — SQLite database generated at runtime
-- `test_vendor_security.py` — regression tests for security, governance, agents, and marketplace flows
-- `README.md` — project overview and secure AI design guidance
+### Data model
+
+All entities are per-tenant:
+
+```
+Tenant
+├── Identity → User | ServiceAccount | Group | Role
+│   ├── Group membership (identity ↔ group)
+│   ├── Role assignment (identity ↔ role)
+│   └── Permission assignment (identity ↔ permission)
+├── Device (linked to owning identity)
+├── Application
+├── Resource (hierarchical: parent_id)
+├── Permission (action + resource_type)
+├── Policy (conditional, with effect: allow|deny|audit)
+├── Credential (password | key, with lifecycle)
+├── Session (with MFA state, risk score, expiration)
+├── AccessEvent (every access decision recorded)
+├── RiskEvent (scored 0-100, with severity and indicators)
+├── Finding (category, severity, recommendation)
+├── Violation (policy violation, with evidence)
+└── Remediation (action type, assigned to, status)
+```
+
+### REST API surface
+
+Base path: `/api/tenants/{tenant_id}`
+
+Resources: tenants, identities (user/service_account/group/role), groups (members/roles), roles (permissions), devices, applications, resources, permissions, policies, credentials (with rotate), sessions, access-events, risk-events, findings, violations, remediations, dashboard, risk-surface, effective-access, evaluate, enrich/context.
+
+### Policy Decision Point (evaluate)
+
+`POST /api/tenants/{tenant}/evaluate` accepts identity_id, action, resource_id, device_id, mfa_verified, context — returns decision (grant/deny), reason, effective_permissions, policy violations that fired, risk_score, mfa_required.
+
+The PDP checks: identity active → permission grants action on resource type → deny policies (MFA, posture, off-hours, role restrictions) → audit policies (credential age).
+
+### Enrichment endpoint (Network Guardian integration)
+
+`POST /api/enrich/context` with device_ip or identity_id returns full identity context: device owner, effective access, risk surface, sessions, access events, findings, violations. This is the primary cross-app integration surface — Network Guardian correlates its network telemetry with PakShield's identity/access/risk context.
 
 ## Tech stack
 
-- Python 3.10+
-- Flask
-- SQLite
-- Pydantic
-- cryptography
-- requests
-- boto3 (optional, for AWS marketplace integration pattern)
+Python 3.10+, Flask, SQLite (pakshield.db), stdlib hashlib.
 
 ## Installation
 
-1. Open a terminal in the project folder.
-2. Create a virtual environment (optional but recommended):
-
 ```bash
 python -m venv .venv
+# Windows: .venv\Scripts\Activate.ps1  /  .venv\Scripts\activate.bat
+# Linux/macOS: source .venv/bin/activate
+pip install flask
 ```
 
-3. Activate the environment:
-
-Windows PowerShell:
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-Windows CMD:
-```cmd
-.venv\Scripts\activate.bat
-```
-
-Linux/macOS:
-```bash
-source .venv/bin/activate
-```
-
-4. Install dependencies:
-
-```bash
-pip install -r requirements.txt
-```
-
-## Run the app
-
-From the project root:
+## Run
 
 ```bash
 python app.py
 ```
 
-Then open:
+Open http://127.0.0.1:5000/ — API at http://127.0.0.1:5000/api/tenants/TENANT-WOLF-PAK/...
 
-- http://127.0.0.1:5000/
-- http://127.0.0.1:5000/demo
+## Demo mode
 
+Set `DEMO_MODE=true` to auto-create seed tenant + sample data on startup. Seed includes: 1 tenant, 15 identities (5 users, 3 service accounts, 3 groups, 2 roles), 5 devices, 5 applications, 6 resources, 11 permissions, 5 policies, 3 credentials, 3 sessions, 3 access events, 3 risk events, 3 findings, 3 violations, 3 remediations.
 
-
-### 1. Vendor Document Parsing & Data Structuring Agent
-
-This agent is now implemented as `VendorDocumentParsingAgent`.
-
-- Role: parse unstructured vendor inputs such as PDFs, emails, legacy EDI text, and supplier notes.
-- Output: strict JSON-like dictionaries that can be validated against Pydantic models before insertion into the system.
-- Safety model: the agent converts untrusted vendor text into structured data only; it does not directly execute vendor actions.
-- Value: reduces manual data entry while ensuring every downstream payload passes schema enforcement and cryptographic signing checks.
-
-### 2. Threat & Anomaly Detection Agent
-
-This agent is now implemented as `ThreatDetectionAgent`.
-
-- Role: monitor vendor behavior, multi-agent execution logs, and out-of-pattern operational signals.
-- Signals: unusual spikes in request volume, anomalous inventory updates, suspicious tool access, or out-of-scope API action attempts.
-- Safety model: it emits risk observations and alert states, but does not approve actions by itself.
-- Value: gives security teams behavioral monitoring beyond static rules, and works alongside the blast-radius governance engine already in this project.
-
-### 3. Plain-English Compliance & Audit Summarizer
-
-This agent is now implemented as `ComplianceAuditAgent`.
-
-- Role: convert signed hash logs and structured governance data into readable audit summaries for legal, compliance, and executive stakeholders.
-- Inputs: cryptographically verified ledger entries, receipts, and policy decisions.
-- Safety model: the agent reads only sanitized, signed, and already-approved evidence. It is not allowed to alter records or issue decisions.
-- Value: enables natural-language audit queries and executive summaries while preserving traceability back to the source logs.
-
-In short, this application follows a zero-trust AI design:
-
-- raw vendor data is never trusted
-- LLMs are constrained to parsing, detection, and summarization
-- schema validation, cryptographic verification, audit logging, and human approval remain the enforcement layer
-
-## System architecture
-
-```mermaid
-flowchart LR
-    A[Third-Party Vendor Input\nInvoice / PDF / Email / JSON] --> B[Untrusted Vendor Stream]
-    B --> C[LLM Parsing Agent\nConvert to strict JSON]
-    C --> D[Pydantic Validation\nSchema Enforcement]
-    D --> E[Cryptographic Signature Check]
-    E --> F[Risk / Blast-Radius Governance]
-    F --> G{Risk Level}
-    G -->|Low| H[Auto-execute Approved Actions]
-    G -->|Medium| I[Multi-Agent Consensus]
-    G -->|High| J[Human Approval Gate]
-
-    H --> K[Marketplace Fulfillment\nAzure / AWS]
-    I --> K
-    J --> K
-
-    K --> L[Signed Audit Ledger\nExecution Receipts]
-    L --> M[Compliance & Audit Summarizer]
-    L --> N[Threat & Anomaly Detection Agent]
-    N --> O[Security Dashboard / SOC Alerts]
-    M --> P[Executive Audit Q&A]
-
-    classDef secure fill:#d9f2e6,stroke:#2e7d32,color:#000;
-    classDef warn fill:#fff4cc,stroke:#b7791f,color:#000;
-    classDef risky fill:#fdecea,stroke:#c62828,color:#000;
-
-    class A,B,C,D,E,F,H,I,J,K,L,M,N,O,P secure;
-    class G warn;
-    class J risky;
-```
-
-This architecture keeps the LLM in a constrained role: it can parse, detect anomalies, and summarize evidence, but it does not directly approve a high-risk transaction or act on untrusted vendor instructions without validation and human oversight.
-
-## Demo features
-
-### CRM and sales dashboard
-
-The app includes a lightweight CRM-style workflow with:
-
-- users
-- contacts
-- leads
-- opportunities
-- sales pipeline stages
-
-These are stored in SQLite and exposed through JSON API routes such as:
-
-- `/api/users`
-- `/api/contacts`
-- `/api/leads`
-- `/api/opportunities`
-
-### Secure vendor ingest
-
-The app demonstrates a zero-trust procurement flow with:
-
-- vendor signature validation
-- payload schema enforcement
-- risk scoring for payment volume and access tier
-- approval requirements for high-risk actions
-- audit entries for execution receipts
-
-### Encryption strategy demo
-
-The system can dynamically route to different cryptographic strategies:
-
-- AES-256-GCM
-- ChaCha20-Poly1305
-- Fernet
-
-This is exposed via the vendor strategy summary and the cryptographic engine in `VendorPayloadVerification.py`.
-
-### Marketplace fulfillment
-
-The app includes onboarding workflows for:
-
-- AWS marketplace registration
-- Azure marketplace registration
-
-Routes include:
-
-- `/marketplace/aws/onboard`
-- `/marketplace/azure/onboard`
-
-### Lifecycle events and metering
-
-The app can process lifecycle events such as:
-
-- cancel/unsubscribe
-- plan changes
-- renewals
-- subscription updates
-
-It also supports usage metering for both platforms:
-
-- `/marketplace/webhooks`
-- `/marketplace/usage-meter`
-- `/marketplace/usage-meter/aws`
-- `/marketplace/usage-meter/azure`
-
-These are implemented to follow marketplace-style usage reporting patterns and can fall back to local simulated billing when external services are not configured.
-
-### Prometheus-style telemetry
-
-The app exposes a metrics simulation layer with sample time series covering:
-
-- pipeline throughput
-- security audits
-- agent performance
-- gateway latency
-- HTTP 5xx rate
-- CPU usage
-- memory usage
-
-Routes include:
-
-- `/api/prometheus-demo`
-- `/api/prometheus/query_range`
-
-## Testing
-
-Run the full regression suite:
+## Smoke test
 
 ```bash
-python -m unittest discover -v
+python smoke_test.py
 ```
 
-This validates the core security, governance, agent behavior, fulfillment, telemetry, and usage-metering flows.
+Verifies dashboard, identities, groups, roles, devices, apps, resources, permissions, policies, PDP evaluate (grant + deny), risk surface, finding+remediation CRUD, access events, sessions, effective access.
 
-### Current validation status
+## Integration with Network Guardian and Mask Network
 
-The project currently passes the complete regression suite with 17 tests covering:
+### Network Guardian → PakShield
 
-- vendor signature verification
-- payload tampering detection
-- schema validation
-- human approval flow
-- agent authorization checks
-- encryption round trips
-- DLP sanitization
-- signed receipt verification
-- Prometheus query responses
-- marketplace onboarding
-- lifecycle webhooks
-- usage metering
-- document parsing agent
-- anomaly detection agent
-- compliance summarization agent
+NG calls `POST /api/enrich/context` with device IP or identity ID → gets identity/access/risk context for network event correlation.
 
-## Example security flow
+### PakShield → Wolf-Pak Event Fabric
 
-A typical secure vendor ingestion flow looks like this:
+PakShield emits access events, risk events, findings, violations, remediations to the Event Fabric intake server (default `http://localhost:8090/api/event-fabric/intake`). Set `WOLF_PAK_EVENT_FABRIC_URL` to configure. Fire-and-forget — failures logged and swallowed.
 
-1. Vendor sends signed supply payload.
-2. Payload is validated cryptographically.
-3. Schema is checked for structural correctness.
-4. Sensitive data is sanitized.
-5. Risk score is computed.
-6. High-risk actions require human approval.
-7. Audit receipt is written.
-8. Marketplace tenant is provisioned or usage is recorded.
+### PakShield → Wolf-Pak Security Graph
 
-## Shipping readiness notes
+PakShield upserts identity, device, application, resource, permission, policy nodes and relationships into the Security Graph — keeps identity→device, identity→resource, device→application edges current.
 
-Before publishing to GitHub, the project should be initialized as a git repository and a `.gitignore` should be added to exclude:
+### PakShield → Mask Network redaction
 
-- `.venv/`
-- `__pycache__/`
-- `.env`
-- `crm.db`
-- generated logs and local cache directories
+PakShield redacts sensitive fields (passwords, tokens, API keys, PII) via Mask's `TrafficMasker`/`AnonymisationPipeline` before API responses and event payloads. Falls back to local rule engine when Mask unavailable.
 
-The codebase has been reviewed for obvious secret-like values and no live AWS or Azure credentials were found in the repository content itself. The system uses environment variables and placeholder/mock values for marketplace tokens where appropriate.
+### Shared event schema
 
-## Notes
+```json
+{
+  "timestamp_ms": 1760000000000,
+  "asset_id": "DEV-...",
+  "source": "PAKSHIELD",
+  "source_version": "0.1.0",
+  "event_type": "access_decision|risk_signal|security_finding|policy_violation|remediation",
+  "severity": "low|medium|high|critical",
+  "category": "access|risk|finding|violation|remediation|credential|session",
+  "description": "...",
+  "family": "detection|audit",
+  "event_id": "...",
+  "payload": {...}
+}
+```
 
-- This is a demo application intended for presentation, training, and workflow validation.
-- Real AWS/Azure marketplace calls require valid credentials and environment configuration.
-- The app is intentionally built to illustrate secure enterprise procurement and billing patterns without requiring a production cloud deployment.
+Cross-app join key: `asset_id` (PakShield populates from owning device ID).
 
-## Suggested next steps
+## Project structure
 
-- Add real authentication and session management
-- Replace mock marketplace credentials with environment-based secrets
-- Add persistent tenant and usage records in a production database
-- Expand the UI into a more formal operations console
-- Hook Prometheus or a monitoring backend into real telemetry data
+```
+PakShield/
+├── app.py                 # Flask bootstrapper
+├── core.py                # IAM engine — schema, helpers, Flask app, seed data
+├── app_p1.py              # Tenant, Identity, Group, Role routes
+├── app_p2.py              # Device, Application routes
+├── routes_resources.py    # Resource, Permission, Policy routes
+├── routes_auth.py         # Credential, Session, Access Event routes
+├── routes_security.py     # Risk Event, Finding, Violation, Remediation routes
+├── routes_dashboard.py    # Dashboard, Risk Surface, Effective Access, PDP Evaluate
+├── routes_enrichment.py   # NG enrichment endpoint
+├── pakshield_integration.py  # Event Fabric + Security Graph + Mask redaction + enrichment
+├── smoke_test.py          # Smoke test
+├── requirements.txt       # flask
+├── Dockerfile
+├── docker-compose.yml
+└── .gitignore
+```
 
 ## License
 
-This project is provided as a demonstration application for internal and educational use.
+Internal and educational use.
